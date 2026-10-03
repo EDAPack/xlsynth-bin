@@ -1,0 +1,31 @@
+# Input components for xlsynth-bin, resolved by edapack-common's
+# resolve-inputs.py. See https://edapack.github.io (Developer Guide → build-inputs).
+#
+# Comments are kept in this header (not inline in the body) because the
+# published @v1 resolver's YAML parser neither strips trailing inline comments
+# nor skips comment lines when deciding a block's type.
+#
+#   core xlsynth    - this package REPACKS upstream's prebuilt binaries rather
+#                     than building from source (see docs/plan.md), so both
+#                     policies point at a published release: a commit with no
+#                     release has no assets to download. `policy` and
+#                     `release_policy` are deliberately identical; CI only runs
+#                     the release track.
+#   no version_probe - latest-release yields a version from the tag itself
+#                     (v0.59.0 -> 0.59.0).
+#   release_notes   - gh-compare, not a changelog path: xlsynth has no
+#                     changelog file and every release body is the boilerplate
+#                     line "Automated release of vX". Its commit subjects
+#                     ("[XLS PR #5055] build: ...", "dslx: ...") are readable,
+#                     and gh-compare falls back to them because they match
+#                     neither PR-merge shape it knows. scripts/release-notes-hook.sh
+#                     adds the part that can only come from the binaries.
+#   no dependencies  - a repack has no build inputs beyond the upstream assets.
+schema: edapack.build-inputs/1
+
+core:
+  name: xlsynth
+  repo: https://github.com/xlsynth/xlsynth
+  policy: latest-release
+  release_policy: latest-release
+  release_notes: gh-compare

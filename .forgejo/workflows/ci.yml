@@ -1,0 +1,92 @@
+# edapack/xlsynth-bin -- Forgejo Actions.
+#
+# THIS FILE'S FIRST JOB IS TO EXIST. When .forgejo/workflows/ is absent the
+# Forgejo runner falls back to running .github/workflows/ -- the fallback is
+# DIRECTORY-level and evaluated per commit. One file here disarms the whole
+# repository.
+#
+# WHY THIS IS A CHECK AND NOT A MIRROR OF THE BUILD. The real pipeline
+# `docker run`s stock manylinux images and uses a macOS runner. There is no
+# Docker daemon on this runner and no macOS, so a shadow that pretended
+# otherwise would go red for reasons about the runner rather than about the
+# code.
+#
+# WHAT IT ACTUALLY GUARDS. .github/workflows/ci.yml here is a THIN CALLER of
+#
+#     edapack/edapack-common/.github/workflows/build-release.yml@v1
+#
+# so this repo has no publish step of its own to gate -- the gating lives in
+# edapack-common. The pin is worth staring at: `@v1` LOOKS immutable and is
+# not: it is an actions/checkout@v4-style major-version alias that gets
+# retargeted forward, so it currently points at the tip of edapack-common's
+# `main`. That is why the check below asserts the pin rather than the gate --
+# the gate is somewhere else, and what can break HERE is the reference to it.
+#
+# The remaining checks cover what is genuinely this repo's own: a repack is
+# nothing but a handful of contracts (which upstream asset, which layout, which
+# files get injected), and every one of them is a plain file that can be
+# validated without a toolchain. Those live in scripts/check-repo.py rather
+# than inline here, because .github/workflows/ci.yml runs the same script on
+# push -- two inline copies of the same checks would silently drift apart.
+
+name: CI
+
+on:
+  push:
+    branches: ['**']
+    tags: ['v*']
+  pull_request:
+  workflow_dispatch:
+
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    steps:
+    - uses: actions/checkout@v4
+
+    - name: Check for internal identifiers in tracked files
+      # This repo is published to git.dvkit.org, so anything committed here is
+      # public. Internal host names, tailnet addresses and CGNAT-range IPs must
+      # not appear in tracked files -- if a build ever needs one it belongs in a
+      # repository secret, which is masked in logs.
+      run: |
+        pattern='perch-char\.ts\.net|\.ts\.net|a9550|100\.(6[4-9]|[7-9][0-9]|1[01][0-9]|12[0-7])\.[0-9]+\.[0-9]+'
+        if git grep -nIE "$pattern" -- . ':!.forgejo/workflows/ci.yml' ; then
+          echo "::error::internal identifier found in a tracked file (see matches above)"
+          exit 1
+        fi
+        echo "OK: no internal identifiers in tracked files"
+
+    - name: Install PyYAML and pytest
+      # Not present in catthehacker/ubuntu:act-22.04 by default. check-repo.py
+      # must read the workflows as YAML rather than by grepping: a gate that is
+      # only true textually is exactly the class of bug being guarded against.
+      # PEP 668 marks this image's interpreter externally-managed on some
+      # rebuilds, hence the escalation.
+      run: |
+        for pkg in pyyaml pytest; do
+          python3 -m pip install -q "$pkg" \
+            || python3 -m pip install -q --break-system-packages "$pkg" \
+            || { echo "::error::could not install $pkg"; exit 1; }
+        done
+
+    - name: Shell scripts must parse
+      run: |
+        for f in scripts/*.sh tests/*.sh; do
+          bash -n "$f" || { echo "::error::$f has a syntax error"; exit 1; }
+          echo "OK: $f parses"
+        done
+
+    - name: Repo contracts
+      # The shared-pipeline pin, the repack contracts, and the build targets
+      # vs. the case arms in scripts/build.sh. Same script the GitHub workflow
+      # runs; see its header for what each check is for.
+      run: python3 scripts/check-repo.py
+
+    - name: Unit tests
+      # scripts/xlsynth-behavior-diff.py parses `--helpfull`, DSLX stdlib
+      # sources and `nm` output to build the release notes' behavior section.
+      # Its parsers are pure functions over captured text, so they are
+      # testable here even though no xlsynth binary exists on this runner.
+      run: python3 -m pytest tests -q
+

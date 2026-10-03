@@ -1,0 +1,11 @@
+# Agent Skills shipped in the xlsynth-bin release tarball.
+# Consumed by edapack-common's stage-skills.py from scripts/build.sh.
+# See ../SKILL_DEVELOPMENT_PROCESS.md in the edapack workspace for the process.
+#
+# One skill covers all twelve tools: they are stages of one pipeline
+# (DSLX -> IR -> optimized IR -> Verilog) plus the checkers that sit beside it,
+# and an agent picking a tool is really picking a stage.
+skills:
+  - name: xlsynth
+    path: skills/xlsynth
+    binaries: [typecheck_main, dslx_interpreter_main, ir_converter_main, opt_main, codegen_main, check_ir_equivalence_main, prove_quickcheck_main, dslx_fmt, dslx_ls]

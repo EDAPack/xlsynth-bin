@@ -1,0 +1,121 @@
+# RELEASE PATH -- read this before changing the `uses:` below.
+#
+# This repo does not publish anything itself. Its release pipeline is
+# edapack/edapack-common's reusable build-release workflow, and the gating for
+# it lives there (a release-authority switch plus a not-triggered-by-push
+# condition on the publish job). This repo belts-and-braces it: the only job
+# below is itself `if: github.event_name != 'push'`, so a mirror push reaches
+# no publish step even if the shared gate were to change. That is what makes
+# this repo safe to mirror between Forgejo and GitHub, since git-sync produces
+# exactly one kind of event, a push.
+#
+# THE PIN IS NOT IMMUTABLE. `@v1` is an actions/checkout@v4-style major-version
+# alias that edapack-common retargets forward, so it currently points at the tip
+# of that repo's `main`. Changing it -- or edapack-common moving it -- changes
+# this repo's release behaviour with no commit here.
+#
+# This block is also load-bearing for the sync itself, which is worth knowing
+# before deleting it as boilerplate. git-sync's inbound publish preflight reads
+# workflow files as TEXT and cannot follow a `uses:` into another repository, so
+# it sees a reference to a release pipeline and no evidence of a gate, and
+# refuses to pull the ref. Naming the switch here is how this file states the
+# thing the scanner is actually asking about; the gate really is on, it is just
+# one repository away. There is a counterpart check in
+# .forgejo/workflows/ci.yml that asserts the pin still resolves.
+
+name: CI
+# Thin caller of the shared edapack build pipeline. See
+# https://edapack.github.io (Developer Guide).
+#
+# SINGLE TRACK, AND WHY. Every edapack tool repo that builds from source has a
+# dev track that snapshots the upstream trunk. xlsynth-bin has none, because it
+# does not build anything: it REPACKS upstream's published release assets
+# (docs/plan.md). An upstream commit with no release has no assets to
+# download, so a trunk snapshot is not a thing that can exist here.
+# build-inputs.yaml therefore points both `policy` and `release_policy` at
+# latest-release, and only the release track is wired up.
+#
+# CADENCE: WEEKLY. xlsynth releases about three times a month, with semver
+# bumps that do change behavior (40 releases 2025-11-10..2026-09-26), so a
+# monthly snapshot would leave users several minor versions behind.
+# Mirroring every release is not possible either: the shared release-track
+# gate picks the newest upstream tag we have not published, so a burst (v0.58.0
+# and v0.59.0 came 13 hours apart) yields one release, whose notes still list
+# the commits of the skipped one. A week with no upstream movement is a no-op.
+# Run the workflow by hand for anything urgent.
+#
+# VERSIONING. The published tag is upstream's tag verbatim (v0.59.0): the
+# shared release-track gate asks GitHub whether `v<upstream-version>` is
+# already released, and mirroring the tag answers "which xlsynth is this?"
+# without opening manifest.json. It also matters for xlsynth-crate users, who
+# must pair a crate with the libxls of the same xlsynth tag.
+on:
+  push:
+  schedule:
+    - cron: "0 12 * * 1"   # Mondays, 12:00 UTC
+  workflow_dispatch:
+    inputs:
+      core_ref:
+        description: "Repack a specific xlsynth release tag, e.g. v0.59.0"
+        type: string
+      force:
+        description: "Republish even if we already released this upstream tag"
+        type: boolean
+        default: false
+
+jobs:
+  # WHY A PUSH NEEDS ITS OWN JOB HERE. `release` below is `if: != 'push'`, and
+  # this repo has no dev track to pick up the slack, so without this job a push
+  # runs NOTHING: a skipped job, a grey check, and a broken workflow, target
+  # name or build script that stays invisible until the cron fires (this is
+  # what verible-bin's first push did, run 35529925966).
+  #
+  # It is deliberately cheap and toolchain-free. It validates the declarations
+  # that make up almost all of a repack: which upstream assets, which layout,
+  # which files get injected. See scripts/check-repo.py, which the Forgejo
+  # workflow runs too so the two forges cannot drift.
+  check:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Install test deps
+        run: pip install -q pyyaml pytest
+      - name: Shell scripts must parse
+        run: |
+          for f in scripts/*.sh tests/*.sh; do
+            bash -n "$f" || { echo "::error::$f has a syntax error"; exit 1; }
+            echo "OK: $f parses"
+          done
+      - name: Repo contracts
+        run: python3 scripts/check-repo.py
+      - name: Unit tests
+        run: python3 -m pytest tests -q
+
+  # Newest upstream release we have not published yet. Skipped on push: a
+  # recipe commit cannot change what upstream has released, and the shared
+  # workflow refuses to publish from a push anyway.
+  release:
+    if: github.event_name != 'push'
+    uses: edapack/edapack-common/.github/workflows/build-release.yml@v1
+    with:
+      package: xlsynth-bin
+      track: release
+      # Upstream ships exactly two platforms (docs/plan.md, Finding 1): Linux
+      # x86_64 and macOS arm64. No Linux aarch64, Windows or Intel-Mac build
+      # exists to repack.
+      #
+      # A repack needs no toolchain, so the image choice is about where the
+      # SMOKE TEST runs. The Linux binaries are dynamic against glibc (floor
+      # 2.27, checked by build.sh across every shipped file), so repacking and
+      # smoke-testing inside manylinux_2_28 is what proves the glibc_2.28 the
+      # manifest records. macOS runs natively on the arm64 runner.
+      targets: |
+        [
+          {"name":"linux-x86_64","runs-on":"ubuntu-latest","kind":"docker","image":"quay.io/pypa/manylinux_2_28_x86_64"},
+          {"name":"macos-arm64","runs-on":"macos-14","kind":"native"}
+        ]
+      core_ref: ${{ inputs.core_ref || '' }}
+      force: ${{ github.event_name == 'workflow_dispatch' && inputs.force }}

@@ -216,3 +216,16 @@ __marimo__/
 # Streamlit
 .streamlit/secrets.toml
 
+
+
+# --- edapack ---------------------------------------------------------------
+# ivpm-fetched dependencies (edapack-common lands here)
+packages/
+# local build scratch (edapack-common's ec_init_dirs default)
+.build/
+# resolved input candidate written by a local build
+candidate.json
+# ivpm-generated agent-skill symlink farms
+.agents/skills/
+.claude/skills/
+.cursor/skills/

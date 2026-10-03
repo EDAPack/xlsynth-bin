@@ -1,0 +1,11 @@
+
+package:
+  name: xlsynth-bin
+
+  dep-sets:
+  - name: default-dev
+    deps:
+    - name: edapack-common
+      url: https://github.com/edapack/edapack-common.git
+    - name: pytest
+      src: pypi

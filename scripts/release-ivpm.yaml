@@ -1,0 +1,28 @@
+# Consumer-facing ivpm manifest, staged into the release tarball as ivpm.yaml
+# by edapack-common's ec_stage_release_ivpm.
+#
+# This is NOT the project's ivpm.yaml. That one describes how to *build*
+# xlsynth-bin (edapack-common, test deps); shipping it would make anyone
+# installing a release fetch all of that just to run the tools.
+#
+# What a consumer of an installed release needs:
+#
+#   PATH              the 12 XLS tools. Five of them are wrappers in bin/ that
+#                     pass the bundled DSLX stdlib location (docs/plan.md,
+#                     Finding 3); the real executables live in libexec/xlsynth.
+#   DSLX_STDLIB_PATH  the bundled stdlib, for anything else that runs a DSLX
+#   XLS_DSO_PATH      front end -- notably xlsynth-crate, whose build.rs uses
+#                     both instead of downloading libxls when they are set
+#                     (docs/plan.md, Finding 4). lib/libxls.so exists on both
+#                     platforms: on macOS it is a symlink to libxls.dylib, so
+#                     one manifest serves every target.
+package:
+  name: xlsynth-bin
+
+  env:
+  - name: PATH
+    path-prepend: "${IVPM_PACKAGES}/xlsynth-bin/bin"
+  - name: DSLX_STDLIB_PATH
+    value: "${IVPM_PACKAGES}/xlsynth-bin/share/xlsynth/dslx_stdlib"
+  - name: XLS_DSO_PATH
+    value: "${IVPM_PACKAGES}/xlsynth-bin/lib/libxls.so"

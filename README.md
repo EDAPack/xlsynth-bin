@@ -2,7 +2,7 @@
 
 [xlsynth](https://github.com/xlsynth/xlsynth), the xlsynth distribution of
 Google's [XLS](https://google.github.io/xls/) high-level synthesis toolchain,
-packaged for [edapack](https://edapack.github.io).
+packaged for [edapack](https://dvkit.org/edapack/).
 
 DSLX in, Verilog out: twelve tools, plus the libxls C-API library and the
 DSLX standard library.

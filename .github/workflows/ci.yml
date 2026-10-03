@@ -25,7 +25,7 @@
 
 name: CI
 # Thin caller of the shared edapack build pipeline. See
-# https://edapack.github.io (Developer Guide).
+# https://dvkit.org/edapack/ (Developer Guide).
 #
 # SINGLE TRACK, AND WHY. Every edapack tool repo that builds from source has a
 # dev track that snapshots the upstream trunk. xlsynth-bin has none, because it

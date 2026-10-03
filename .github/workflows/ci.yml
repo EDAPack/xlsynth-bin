@@ -62,6 +62,12 @@ on:
         description: "Republish even if we already released this upstream tag"
         type: boolean
         default: false
+      revision:
+        description: "Packaging revision of core_ref (1 -> v0.59.0.1); for fixes to the package, not upstream"
+        type: string
+      revision_note:
+        description: "With revision: what changed in the package (goes in the release body)"
+        type: string
 
 jobs:
   # WHY A PUSH NEEDS ITS OWN JOB HERE. `release` below is `if: != 'push'`, and
@@ -119,3 +125,9 @@ jobs:
         ]
       core_ref: ${{ inputs.core_ref || '' }}
       force: ${{ github.event_name == 'workflow_dispatch' && inputs.force }}
+      # Packaging revisions (edapack-common README, "Packaging revisions"):
+      # republish an upstream release we already shipped, as v<upstream>.<N>,
+      # when the PACKAGE was wrong. v0.59.0.1 exists because v0.59.0's
+      # consumer env vars were never exported (docs/plan.md, item 8).
+      revision: ${{ inputs.revision || '' }}
+      revision_note: ${{ inputs.revision_note || '' }}

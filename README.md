@@ -76,6 +76,13 @@ at the newest repack.
 To pick up a release out of band, run the CI workflow by hand. It takes an
 optional `core_ref` (a specific upstream tag) and a `force` flag.
 
+A fix to the *package* rather than to xlsynth ships as a **packaging
+revision**. Run the workflow with `core_ref: v0.59.0`, `revision: 1` and a
+`revision_note`, and it publishes `v0.59.0.1`: the same upstream binaries,
+repackaged, with the note in the release body. The revision is a fourth
+component, never a bumped patch, so it can't collide with upstream's own next
+release.
+
 ### Release notes
 
 xlsynth has no changelog, and every upstream release body reads "Automated

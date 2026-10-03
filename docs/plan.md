@@ -57,6 +57,9 @@ Things implementation turned up that the research below did not predict:
    rejects them in the manifest and checks them in `export.envrc`. The PATH
    entry in every edapack `*-bin` manifest is the same no-op; PATH works only
    because of `PATH_add bin`.
+   Shipped to consumers as packaging revision **v0.59.0.1** (edapack-common
+   gained `revision`/`revision_note` inputs for this; `v1` moved to 0969631,
+   which also carries the item 7 release-notes fix).
 
 ## The question
 

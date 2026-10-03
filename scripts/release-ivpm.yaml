@@ -5,24 +5,16 @@
 # xlsynth-bin (edapack-common, test deps); shipping it would make anyone
 # installing a release fetch all of that just to run the tools.
 #
-# What a consumer of an installed release needs:
-#
-#   PATH              the 12 XLS tools. Five of them are wrappers in bin/ that
-#                     pass the bundled DSLX stdlib location (docs/plan.md,
-#                     Finding 3); the real executables live in libexec/xlsynth.
-#   DSLX_STDLIB_PATH  the bundled stdlib, for anything else that runs a DSLX
-#   XLS_DSO_PATH      front end -- notably xlsynth-crate, whose build.rs uses
-#                     both instead of downloading libxls when they are set
-#                     (docs/plan.md, Finding 4). lib/libxls.so exists on both
-#                     platforms: on macOS it is a symlink to libxls.dylib, so
-#                     one manifest serves every target.
+# DSLX_STDLIB_PATH and XLS_DSO_PATH are deliberately NOT here. ivpm emits a
+# package's `env:` directives only when that package is the ROOT project; for
+# an installed dependency they are silently ignored, so a consumer would never
+# see them (found by installing v0.59.0 through ivpm). They are exported from
+# scripts/export.envrc, which ivpm does source for every dependency. The PATH
+# entry below is the same no-op for consumers -- export.envrc's PATH_add is
+# what works -- and stays for parity with the other edapack *-bin manifests.
 package:
   name: xlsynth-bin
 
   env:
   - name: PATH
     path-prepend: "${IVPM_PACKAGES}/xlsynth-bin/bin"
-  - name: DSLX_STDLIB_PATH
-    value: "${IVPM_PACKAGES}/xlsynth-bin/share/xlsynth/dslx_stdlib"
-  - name: XLS_DSO_PATH
-    value: "${IVPM_PACKAGES}/xlsynth-bin/lib/libxls.so"

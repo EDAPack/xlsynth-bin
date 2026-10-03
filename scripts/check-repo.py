@@ -176,24 +176,27 @@ def check_release_ivpm():
         error("release-ivpm.yaml: consumers must not fetch build tooling")
 
     # xlsynth-crate only uses a pre-fetched libxls when BOTH of these are set
-    # (docs/plan.md, Finding 4), and each must name a path build.sh actually
-    # creates -- a typo here ships an env var pointing at nothing, which the
-    # smoke test cannot see because it never reads the consumer manifest.
+    # (docs/plan.md, Finding 4). They must be exported from export.envrc:
+    # ivpm ignores a dependency's `env:` directives, so putting them in the
+    # manifest looks right and exports nothing. And each must name a path
+    # build.sh actually creates -- the smoke test never sources export.envrc,
+    # so a typo here would ship unnoticed.
+    for name in ("DSLX_STDLIB_PATH", "XLS_DSO_PATH"):
+        if any(e.get("name") == name for e in env):
+            error("release-ivpm.yaml sets {}; ivpm ignores a dependency's env: "
+                  "directives, so it must be exported from scripts/export.envrc "
+                  "instead".format(name))
+    envrc = pathlib.Path("scripts/export.envrc").read_text()
     build = pathlib.Path("scripts/build.sh").read_text()
-    want = {"DSLX_STDLIB_PATH": "share/xlsynth/dslx_stdlib",
-            "XLS_DSO_PATH": "lib/libxls.so"}
-    for name, rel in want.items():
-        entry = next((e for e in env if e.get("name") == name), None)
-        if not entry or not entry.get("value"):
-            error("release-ivpm.yaml: no `value:` entry for {}".format(name))
-            continue
-        if not entry["value"].endswith("/{}/{}".format(PACKAGE, rel)):
-            error("release-ivpm.yaml: {} is {!r}, expected it to end in "
-                  "{}/{}".format(name, entry["value"], PACKAGE, rel))
+    for name, rel in (("DSLX_STDLIB_PATH", "share/xlsynth/dslx_stdlib"),
+                      ("XLS_DSO_PATH", "lib/libxls.so")):
+        if 'export {}="$(expand_path {})"'.format(name, rel) not in envrc:
+            error("scripts/export.envrc must export {} as "
+                  "$(expand_path {})".format(name, rel))
         if '$release_root/{}"'.format(rel) not in build \
                 and '$release_root/{}/"'.format(rel) not in build:
-            error("release-ivpm.yaml: {} points at {}, which scripts/build.sh "
-                  "never creates".format(name, rel))
+            error("export.envrc points {} at {}, which scripts/build.sh never "
+                  "creates".format(name, rel))
 
 
 def check_skills():

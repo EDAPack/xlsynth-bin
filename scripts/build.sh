@@ -212,8 +212,8 @@ want="$(sidecar_digest "$dl_dir/libxls-${suffix}.${dso_ext}.sha256")"
 got="$(sha256_of "$release_root/lib/libxls.${dso_ext}")"
 [ "$want" = "$got" ] || ec_die "uncompressed libxls checksum mismatch: upstream '$want', got '$got'"
 chmod 755 "$release_root/lib/libxls.${dso_ext}"
-# One consumer manifest serves every platform (scripts/release-ivpm.yaml points
-# XLS_DSO_PATH at lib/libxls.so). xlsynth-crate turns that path into
+# One export.envrc serves every platform (it points XLS_DSO_PATH at
+# lib/libxls.so). xlsynth-crate turns that path into
 # `-L lib -l xls`, so on macOS the linker still finds libxls.dylib beside it.
 [ "$dso_ext" = so ] || ln -s "libxls.${dso_ext}" "$release_root/lib/libxls.so"
 

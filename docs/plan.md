@@ -46,6 +46,18 @@ Things implementation turned up that the research below did not predict:
    use the old script. That only matters from the second release, because
    the first has nothing to compare against.
 
+8. **ivpm ignores a dependency's `env:` block.** Finding 4's manifest was
+   wrong. ivpm emits `env:` directives only for the ROOT project; an installed
+   dependency contributes only its `export.envrc`. The first published
+   v0.59.0 therefore exported neither `DSLX_STDLIB_PATH` nor `XLS_DSO_PATH`.
+   The bundled tools were unaffected, because the wrappers don't depend on
+   either variable. Found by installing the release through ivpm. Both
+   variables are now exported from `scripts/export.envrc` via `expand_path`
+   (direnv's `source_env` runs inside the package directory). `check-repo.py`
+   rejects them in the manifest and checks them in `export.envrc`. The PATH
+   entry in every edapack `*-bin` manifest is the same no-op; PATH works only
+   because of `PATH_add bin`.
+
 ## The question
 
 [xlsynth/xlsynth](https://github.com/xlsynth/xlsynth) (the xlsynth fork of

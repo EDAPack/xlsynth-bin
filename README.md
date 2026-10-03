@@ -32,10 +32,10 @@ does more than strip a prefix:
 | `lib/libxls.so` | The C-API library, gunzipped and checksum-verified. On macOS this is a symlink to `libxls.dylib`. |
 | `lib/libxls_aot_runtime.a`, `share/xlsynth/` | The AOT runtime, its link requirements and sources. |
 | `share/xlsynth/dslx_stdlib/` | The DSLX standard library (`std.x`, `apfloat.x`, …). |
-| `ivpm.yaml` | Puts `bin/` on `PATH` and exports `DSLX_STDLIB_PATH` and `XLS_DSO_PATH`. |
+| `ivpm.yaml` | The consumer manifest `ivpm` reads for an installed package. |
 | `manifest.json` | The exact upstream tag and commit SHA. This is the only version record: every tool prints `redacted` for `--version`. |
 | `skills/` | An Agent Skill covering the whole toolchain. |
-| `export.envrc` | `direnv` integration. |
+| `export.envrc` | Puts `bin/` on `PATH` and exports `DSLX_STDLIB_PATH` and `XLS_DSO_PATH`. ivpm sources it for every installed dependency. |
 
 ### Why five tools are wrappers
 
@@ -107,8 +107,9 @@ package:
       src: gh-rls
 ```
 
-`ivpm update` selects the right asset for the host, puts `bin/` on `PATH`, and
-exports `DSLX_STDLIB_PATH` and `XLS_DSO_PATH`.
+`ivpm update` selects the right asset for the host. Through direnv, the
+package's `export.envrc` puts `bin/` on `PATH` and exports `DSLX_STDLIB_PATH`
+and `XLS_DSO_PATH`.
 
 ### With xlsynth-crate (Rust)
 

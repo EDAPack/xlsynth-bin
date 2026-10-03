@@ -126,9 +126,10 @@ good for structure), **`asap7`** and **`sky130`** (characterized processes).
 
 ## Using libxls from Rust (xlsynth-crate)
 
-xlsynth-bin exports `XLS_DSO_PATH` (`lib/libxls.so`; on macOS a symlink to
-`libxls.dylib`) and `DSLX_STDLIB_PATH`. When **both** are set, xlsynth-crate's
-build script links against them instead of downloading libxls.
+xlsynth-bin's `export.envrc` (loaded through direnv) exports `XLS_DSO_PATH`
+(`lib/libxls.so`; on macOS a symlink to `libxls.dylib`) and
+`DSLX_STDLIB_PATH`. When **both** are set, xlsynth-crate's build script links
+against them instead of downloading libxls.
 
 **The versions must match.** Each xlsynth-crate release pins one xlsynth tag
 (`RELEASE_LIB_VERSION_TAG` in `xlsynth-sys/build.rs`). Use the xlsynth-bin
